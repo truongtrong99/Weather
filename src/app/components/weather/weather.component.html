@@ -1,0 +1,235 @@
+<div class="weather-container">
+  <h1 class="app-title">Weather App</h1>
+
+  <div class="search-container">
+    <form [formGroup]="form" (ngSubmit)="getWeather()">
+      <div class="input-group">
+        <input
+          type="text"
+          formControlName="location"
+          placeholder="Enter a city, country, or location"
+          class="search-input"
+          [class.invalid]="isControlInvalid('location')"
+        />
+        <button
+          type="submit"
+          class="search-button"
+          [disabled]="form.invalid || loading"
+        >
+          {{ loading ? "Loading..." : "Get Weather" }}
+        </button>
+        <button
+          type="button"
+          class="location-button"
+          (click)="detectLocation()"
+          [disabled]="loading"
+          title="Use my location"
+        >
+          <span class="location-icon">📍</span>
+        </button>
+      </div>
+
+      <div class="error-message" *ngIf="isControlInvalid('location')">
+        Please enter a valid location (minimum 2 characters).
+      </div>
+    </form>
+  </div>
+  <!-- Unit toggle -->
+  <div class="unit-toggle-container">
+    <div class="unit-toggle" *ngIf="weatherData" [class.fahrenheit]="!isMetric">
+      <span [class.active]="isMetric" (click)="toggleUnits()">°C</span>
+      <span class="toggle-divider">|</span>
+      <span [class.active]="!isMetric" (click)="toggleUnits()">°F</span>
+    </div>
+  </div>
+  <!-- Error message -->
+  <div class="alert alert-danger" *ngIf="error">
+    <div class="error-icon">⚠️</div>
+    <div class="error-content">
+      <div class="error-title">Error</div>
+      <div class="error-message">{{ error }}</div>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="loading-spinner" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading weather data...</p>
+  </div>
+  <!-- Weather information -->
+  <div class="weather-info" *ngIf="weatherData">
+    <div class="location-info">
+      <h2>
+        {{ weatherData.location.name }}, {{ weatherData.location.country }}
+      </h2>
+      <p class="time">Local time: {{ weatherData.location.localtime }}</p>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="tab-navigation">
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === 'current'"
+        (click)="switchTab('current')"
+      >
+        Current
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === 'forecast'"
+        (click)="switchTab('forecast')"
+      >
+        Forecast
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === 'hourly'"
+        (click)="switchTab('hourly')"
+      >
+        Hourly
+      </button>
+    </div>
+
+    <!-- Current Weather Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'current'">
+      <div class="current-weather">
+        <div class="temperature">
+          <h3>
+            <span *ngIf="isMetric">{{ weatherData.current.temp_c }}°C</span>
+            <span *ngIf="!isMetric">{{ weatherData.current.temp_f }}°F</span>
+          </h3>
+          <p>
+            Feels like:
+            <span *ngIf="isMetric"
+              >{{ weatherData.current.feelslike_c }}°C</span
+            >
+            <span *ngIf="!isMetric"
+              >{{ weatherData.current.feelslike_f }}°F</span
+            >
+          </p>
+        </div>
+
+        <div class="condition">
+          <img
+            *ngIf="weatherData.current.condition.icon"
+            [src]="'https:' + weatherData.current.condition.icon"
+            [alt]="weatherData.current.condition.text"
+            class="weather-icon"
+          />
+          <p>{{ weatherData.current.condition.text }}</p>
+        </div>
+      </div>
+
+      <div class="weather-details">
+        <div class="detail-item">
+          <span class="detail-label">Humidity:</span>
+          <span class="detail-value">{{ weatherData.current.humidity }}%</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Wind:</span>
+          <span class="detail-value" *ngIf="isMetric"
+            >{{ weatherData.current.wind_kph }} km/h
+            {{ weatherData.current.wind_dir }}</span
+          >
+          <span class="detail-value" *ngIf="!isMetric"
+            >{{ weatherData.current.wind_mph }} mph
+            {{ weatherData.current.wind_dir }}</span
+          >
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Pressure:</span>
+          <span class="detail-value" *ngIf="isMetric"
+            >{{ weatherData.current.pressure_mb }} mb</span
+          >
+          <span class="detail-value" *ngIf="!isMetric"
+            >{{ weatherData.current.pressure_in }} in</span
+          >
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">UV Index:</span>
+          <span class="detail-value">{{ weatherData.current.uv }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forecast Tab -->
+    <div
+      class="tab-content"
+      *ngIf="activeTab === 'forecast' && forecastDays?.length"
+    >
+      <div class="forecast-container">
+        <div
+          class="forecast-day"
+          *ngFor="let day of forecastDays; let i = index"
+          (click)="updateHourlyForecast(i); switchTab('hourly')"
+        >
+          <div class="forecast-date">{{ formatDay(day.date) }}</div>
+          <img
+            [src]="'https:' + day.day.condition.icon"
+            [alt]="day.day.condition.text"
+            class="forecast-icon"
+          />
+          <div class="forecast-temps">
+            <div class="high" *ngIf="isMetric">{{ day.day.maxtemp_c }}°C</div>
+            <div class="high" *ngIf="!isMetric">{{ day.day.maxtemp_f }}°F</div>
+            <div class="low" *ngIf="isMetric">{{ day.day.mintemp_c }}°C</div>
+            <div class="low" *ngIf="!isMetric">{{ day.day.mintemp_f }}°F</div>
+          </div>
+          <div class="forecast-condition">{{ day.day.condition.text }}</div>
+          <div class="forecast-precip">
+            <span *ngIf="day.day.daily_chance_of_rain > 0"
+              >🌧️ {{ day.day.daily_chance_of_rain }}%</span
+            >
+            <span *ngIf="day.day.daily_chance_of_snow > 0"
+              >❄️ {{ day.day.daily_chance_of_snow }}%</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly Tab -->
+    <div
+      class="tab-content"
+      *ngIf="activeTab === 'hourly' && hourlyForecast?.length"
+    >
+      <h3 class="hourly-title">
+        {{ formatDay(forecastDays[selectedDayIndex].date) }} - Hourly Forecast
+      </h3>
+      <div class="hourly-container">
+        <div class="hourly-item" *ngFor="let hour of hourlyForecast">
+          <div class="hourly-time">{{ hour.time.substr(11, 5) }}</div>
+          <img
+            [src]="'https:' + hour.condition.icon"
+            [alt]="hour.condition.text"
+            class="hourly-icon"
+          />
+          <div class="hourly-temp" *ngIf="isMetric">{{ hour.temp_c }}°C</div>
+          <div class="hourly-temp" *ngIf="!isMetric">{{ hour.temp_f }}°F</div>
+          <div class="hourly-precip">
+            <span *ngIf="hour.chance_of_rain > 0"
+              >🌧️ {{ hour.chance_of_rain }}%</span
+            >
+            <span *ngIf="hour.chance_of_snow > 0"
+              >❄️ {{ hour.chance_of_snow }}%</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No data message -->
+  <div class="no-data" *ngIf="!loading && !weatherData && !error">
+    <div class="no-data-icon">🌤️</div>
+    <h3>No Weather Data Yet</h3>
+    <p>
+      Enter a location above or use the location detector to view weather
+      information.
+    </p>
+    <div class="no-data-hint">
+      <span class="hint-icon">💡</span>
+      <span>Try typing a city name like "London" or "New York"</span>
+    </div>
+  </div>
+</div>
