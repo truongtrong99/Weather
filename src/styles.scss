@@ -1,0 +1,29 @@
+/* Global styles */
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Improve animation performance */
+.animated-background,
+.particles-container,
+.particle {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
